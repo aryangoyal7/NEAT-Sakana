@@ -1,0 +1,24 @@
+[project]
+name = "backprop-neat-jax"
+version = "0.1.0"
+description = "Backprop-NEAT in JAX for toy 2D classification tasks"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "jax>=0.4.25",
+  "numpy>=1.26",
+  "matplotlib>=3.8",
+]
+
+[project.scripts]
+bp-neat-jax = "bp_neat_jax.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,2 @@
+[console_scripts]
+neat-evojax = jax_neat_evojax.cli:main

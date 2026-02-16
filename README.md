@@ -1,0 +1,80 @@
+# JAX NEAT + EvoJAX (SlimeVolley)
+
+This project implements a feed-forward NEAT variant in JAX-oriented code (JAX arrays for network execution and EvoJAX task integration) with:
+
+- `direct_vs_builtin`: evolve NEAT directly against EvoJAX SlimeVolley's built-in baseline agent.
+- `selfplay_then_builtin`: evolve NEAT via NEAT-vs-NEAT self-play, then evaluate the best evolved genome against the built-in baseline.
+
+## Constraints implemented
+
+- Feed-forward only (acyclic).
+- No recurrent links.
+- Skip/residual-style links are disabled once intermediate layers appear, so topology complexifies via inserted hidden nodes rather than bypass links.
+
+## Layout
+
+- `src/jax_neat_evojax/`: NEAT core, EvoJAX environment wrapper, visualizations, reporting.
+- `artifacts/`: default output root for logs, plots, champion networks, and GIFs.
+- `reports/`: generated markdown report template and commentary.
+- `backprop_neat_jax/`: separate Backprop-NEAT (JAX) implementation for Circle/XOR/Spiral toy classification.
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+pip install -e .
+```
+
+2. Ensure EvoJAX source is available in this workspace at:
+
+```text
+/Users/aryangoyal/Documents/New project/evojax
+```
+
+(The CLI automatically appends this local path to `sys.path`.)
+
+## Run
+
+### 1) Direct evolution vs built-in agent
+
+```bash
+python -m jax_neat_evojax.cli \
+  --mode direct_vs_builtin \
+  --generations 50 \
+  --pop-size 80 \
+  --episodes-per-genome 3
+```
+
+### 2) Self-play evolution then built-in evaluation
+
+```bash
+python -m jax_neat_evojax.cli \
+  --mode selfplay_then_builtin \
+  --generations 60 \
+  --pop-size 80
+```
+
+## Outputs
+
+For each run, outputs are written to:
+
+```text
+artifacts/<mode>_<timestamp>/
+```
+
+Including:
+
+- `history.csv`: generation metrics.
+- `plots/fitness_complexity.png`
+- `plots/species_sizes.png`
+- `plots/champion_network_gen_*.png`
+- `plots/final_activation_usage.png`
+- `gifs/champion_vs_builtin.gif`
+- `gifs/champion_vs_runnerup.gif` (self-play mode)
+- `report.md`: Google-Doc-ready summary text and links to generated media.
+
+## Notes
+
+- SlimeVolley in this EvoJAX snapshot has a bug in random ball initialization in one helper; this project bypasses that path and uses a safe local initializer.
+- This implementation is optimized for clarity/research workflow, not maximum wall-clock speed.

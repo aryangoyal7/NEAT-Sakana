@@ -1,0 +1,25 @@
+[project]
+name = "jax-neat-evojax"
+version = "0.1.0"
+description = "Feed-forward NEAT in JAX with EvoJAX SlimeVolley integration"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "jax>=0.4.25",
+  "numpy>=1.26",
+  "matplotlib>=3.8",
+  "pillow>=10.0",
+]
+
+[project.scripts]
+neat-evojax = "jax_neat_evojax.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
