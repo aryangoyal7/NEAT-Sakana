@@ -41,6 +41,10 @@ class NEATTrainer:
         self.history: list[dict[str, float]] = []
         self.species_sizes: list[dict[int, int]] = []
         self.champion_snapshots: list[tuple[int, Genome]] = []
+        self.live_history_path = self.out_dir / "history_live.csv"
+        self.live_species_path = self.out_dir / "species_sizes_live.csv"
+        self.live_progress_path = self.out_dir / "progress.json"
+        self.live_champion_path = self.out_dir / "champion_genome_live.json"
 
     def run(self) -> tuple[Genome, Genome | None, dict[str, Path]]:
         for gen in range(self.cfg.generations):
@@ -59,6 +63,7 @@ class NEATTrainer:
 
             g2s = self.species_mgr.speciate(self.population, self.rng)
             self._record_generation(gen, g2s, builtin_eval)
+            self._write_live_generation_files(gen)
 
             if gen < self.cfg.generations - 1:
                 self.population = self._reproduce(g2s)
@@ -66,6 +71,23 @@ class NEATTrainer:
         champion, runnerup = self._final_ranking()
         artifacts = self._save_artifacts(champion, runnerup)
         return champion, runnerup, artifacts
+
+    def _write_live_generation_files(self, gen: int) -> None:
+        # These files are rewritten every generation so progress is visible while training is running.
+        self._write_history_csv(self.live_history_path)
+        self._write_species_csv(self.live_species_path)
+        self._write_genome_json(self._best_genome(), self.live_champion_path)
+        progress = {
+            "generation_completed": gen,
+            "generations_total": self.cfg.generations,
+            "mode": self.mode,
+            "out_dir": str(self.out_dir),
+            "best_fitness": self.history[-1]["best_fitness"] if self.history else None,
+            "mean_fitness": self.history[-1]["mean_fitness"] if self.history else None,
+        }
+        with self.live_progress_path.open("w", encoding="utf-8") as f:
+            json.dump(progress, f, indent=2)
+            f.flush()
 
     def _policy_fn(self, genome: Genome):
         phenotype = genome.to_phenotype()
@@ -326,6 +348,13 @@ class NEATTrainer:
 
         size_map = {sid: len(sp.members) for sid, sp in self.species_mgr.species.items()}
         self.species_sizes.append(size_map)
+        print(
+            f"[gen {gen + 1:03d}/{self.cfg.generations:03d}] "
+            f"best={record['best_fitness']:.3f} "
+            f"mean={record['mean_fitness']:.3f} "
+            f"species={int(record['species_count'])} "
+            f"champ_vs_builtin={record['champ_vs_builtin']:.3f}"
+        )
 
     def _save_artifacts(self, champion: Genome, runnerup: Genome | None) -> dict[str, Path]:
         artifacts: dict[str, Path] = {}
@@ -336,6 +365,10 @@ class NEATTrainer:
         artifacts["history_csv"] = self.out_dir / "history.csv"
         artifacts["species_csv"] = self.out_dir / "species_sizes.csv"
         artifacts["champion_json"] = self.out_dir / "champion_genome.json"
+        artifacts["history_live_csv"] = self.live_history_path
+        artifacts["species_live_csv"] = self.live_species_path
+        artifacts["progress_json"] = self.live_progress_path
+        artifacts["champion_live_json"] = self.live_champion_path
 
         # GIFs.
         champion_policy = self._policy_fn(champion)
