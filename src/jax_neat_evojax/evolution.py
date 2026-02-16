@@ -47,7 +47,15 @@ class NEATTrainer:
         self.live_champion_path = self.out_dir / "champion_genome_live.json"
 
     def run(self) -> tuple[Genome, Genome | None, dict[str, Path]]:
+        self._write_live_progress(
+            generation_completed=-1,
+            status="starting",
+        )
         for gen in range(self.cfg.generations):
+            self._write_live_progress(
+                generation_completed=gen - 1,
+                status=f"evaluating_generation_{gen}",
+            )
             if self.mode == "direct_vs_builtin":
                 self._evaluate_direct_vs_builtin(gen)
                 builtin_eval = float(
@@ -64,12 +72,20 @@ class NEATTrainer:
             g2s = self.species_mgr.speciate(self.population, self.rng)
             self._record_generation(gen, g2s, builtin_eval)
             self._write_live_generation_files(gen)
+            self._write_live_progress(
+                generation_completed=gen,
+                status=f"completed_generation_{gen}",
+            )
 
             if gen < self.cfg.generations - 1:
                 self.population = self._reproduce(g2s)
 
         champion, runnerup = self._final_ranking()
         artifacts = self._save_artifacts(champion, runnerup)
+        self._write_live_progress(
+            generation_completed=self.cfg.generations - 1,
+            status="finished",
+        )
         return champion, runnerup, artifacts
 
     def _write_live_generation_files(self, gen: int) -> None:
@@ -77,10 +93,17 @@ class NEATTrainer:
         self._write_history_csv(self.live_history_path)
         self._write_species_csv(self.live_species_path)
         self._write_genome_json(self._best_genome(), self.live_champion_path)
+        self._write_live_progress(
+            generation_completed=gen,
+            status=f"completed_generation_{gen}",
+        )
+
+    def _write_live_progress(self, generation_completed: int, status: str) -> None:
         progress = {
-            "generation_completed": gen,
+            "generation_completed": generation_completed,
             "generations_total": self.cfg.generations,
             "mode": self.mode,
+            "status": status,
             "out_dir": str(self.out_dir),
             "best_fitness": self.history[-1]["best_fitness"] if self.history else None,
             "mean_fitness": self.history[-1]["mean_fitness"] if self.history else None,
